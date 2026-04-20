@@ -1,0 +1,189 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
+ */
+package login_registration;
+
+import java.sql.*;
+import java.util.Scanner;
+
+public class LoginRegistrationSystem {
+
+    static final String DB_URL = "jdbc:mysql://localhost:3306/login_registration?useSSL=false&serverTimezone=UTC";
+    static final String USER = "root";
+    static final String PASS = "dbms";
+
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS)) {
+
+            System.out.println("✅ Connected to Database!");
+
+            while (true) {
+                System.out.println("\n===== LOGIN & REGISTRATION SYSTEM =====");
+                System.out.println("1. View Users");
+                System.out.println("2. Add User (Register)");
+                System.out.println("3. Update User Email");
+                System.out.println("4. Delete User");
+                System.out.println("5. View Login History");
+                System.out.println("6. Add Login Record");
+                System.out.println("7. Exit");
+                System.out.print("Enter choice: ");
+
+                int choice = sc.nextInt();
+
+                switch (choice) {
+
+                    case 1:
+                        viewUsers(conn);
+                        break;
+
+                    case 2:
+                        addUser(conn, sc);
+                        break;
+
+                    case 3:
+                        updateUser(conn, sc);
+                        break;
+
+                    case 4:
+                        deleteUser(conn, sc);
+                        break;
+
+                    case 5:
+                        viewLogins(conn);
+                        break;
+
+                    case 6:
+                        addLogin(conn, sc);
+                        break;
+
+                    case 7:
+                        System.out.println("Exiting...");
+                        return;
+
+                    default:
+                        System.out.println("Invalid choice!");
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ---------------- VIEW USERS ----------------
+    static void viewUsers(Connection conn) throws SQLException {
+        String sql = "SELECT * FROM login";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        System.out.println("\n--- USERS LIST ---");
+        while (rs.next()) {
+            System.out.println(rs.getInt("id") + " | "
+                    + rs.getString("username") + " | "
+                    + rs.getString("email") + " | "
+                    + rs.getString("password"));
+        }
+    }
+
+    // ---------------- ADD USER ----------------
+    static void addUser(Connection conn, Scanner sc) throws SQLException {
+
+        System.out.print("Enter Username: ");
+        String username = sc.next();
+
+        System.out.print("Enter Email: ");
+        String email = sc.next();
+
+        System.out.print("Enter Password: ");
+        String password = sc.next();
+
+        String sql = "INSERT INTO login(username, email, password) VALUES (?, ?, ?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        ps.setString(1, username);
+        ps.setString(2, email);
+        ps.setString(3, password);
+
+        ps.executeUpdate();
+
+        System.out.println("✅ User registered successfully!");
+    }
+
+    // ---------------- UPDATE USER ----------------
+    static void updateUser(Connection conn, Scanner sc) throws SQLException {
+
+        System.out.print("Enter Username: ");
+        String username = sc.next();
+
+        System.out.print("Enter New Email: ");
+        String email = sc.next();
+
+        String sql = "UPDATE login SET email=? WHERE username=?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        ps.setString(1, email);
+        ps.setString(2, username);
+
+        int rows = ps.executeUpdate();
+        System.out.println("✅ " + rows + " row(s) updated.");
+    }
+
+    // ---------------- DELETE USER ----------------
+    static void deleteUser(Connection conn, Scanner sc) throws SQLException {
+
+        System.out.print("Enter Username: ");
+        String username = sc.next();
+
+        String sql = "DELETE FROM login WHERE username=?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        ps.setString(1, username);
+
+        int rows = ps.executeUpdate();
+        System.out.println("✅ " + rows + " row(s) deleted.");
+    }
+
+    // ---------------- VIEW LOGIN HISTORY ----------------
+    static void viewLogins(Connection conn) throws SQLException {
+        String sql = "SELECT * FROM login_log";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        System.out.println("\n--- LOGIN HISTORY ---");
+        while (rs.next()) {
+            System.out.println(rs.getInt("login_id") + " | "
+                    + rs.getInt("user_id") + " | "
+                    + rs.getString("status") + " | "
+                    + rs.getString("ip_address") + " | "
+                    + rs.getTimestamp("login_time"));
+        }
+    }
+
+    // ---------------- ADD LOGIN RECORD ----------------
+    static void addLogin(Connection conn, Scanner sc) throws SQLException {
+
+        System.out.print("Enter User ID: ");
+        int userId = sc.nextInt();
+
+        System.out.print("Enter Status (success/failed): ");
+        String status = sc.next();
+
+        System.out.print("Enter IP Address: ");
+        String ip = sc.next();
+
+        String sql = "INSERT INTO login_log(user_id, status, ip_address) VALUES (?, ?, ?)";
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        ps.setInt(1, userId);
+        ps.setString(2, status);
+        ps.setString(3, ip);
+
+        ps.executeUpdate();
+
+        System.out.println("✅ Login record added!");
+    }
+}
