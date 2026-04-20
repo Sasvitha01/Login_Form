@@ -1,0 +1,318 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class LoginRegistrationGUI extends JFrame {
+
+    JTable userTable, logTable;
+    JTextField txtUsername, txtEmail, txtPassword;
+    JTextField txtUserId, txtStatus, txtIP;
+
+    static final String DB_URL = "jdbc:mysql://localhost:3306/login_registration?useSSL=false&serverTimezone=UTC";
+    static final String USER = "root";
+    static final String PASS = "dbms";
+
+    public LoginRegistrationGUI() {
+
+        setTitle("Login & Registration System");
+        setSize(800, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        JTabbedPane tabs = new JTabbedPane();
+
+        // ================= USERS TAB =================
+        JPanel userPanel = new JPanel(new BorderLayout());
+
+        userTable = new JTable(new DefaultTableModel(
+                new String[]{"ID", "Username", "Email", "Password"}, 0));
+        userPanel.add(new JScrollPane(userTable), BorderLayout.CENTER);
+
+        JPanel inputPanel = new JPanel();
+        txtUsername = new JTextField(10);
+        txtEmail = new JTextField(10);
+        txtPassword = new JTextField(10);
+
+        inputPanel.add(new JLabel("Username"));
+        inputPanel.add(txtUsername);
+        inputPanel.add(new JLabel("Email"));
+        inputPanel.add(txtEmail);
+        inputPanel.add(new JLabel("Password"));
+        inputPanel.add(txtPassword);
+
+        userPanel.add(inputPanel, BorderLayout.NORTH);
+
+        JPanel btnPanel = new JPanel();
+
+        JButton btnLoad = new JButton("Load");
+        JButton btnAdd = new JButton("Register");
+        JButton btnUpdate = new JButton("Update");
+        JButton btnDelete = new JButton("Delete");
+
+        btnPanel.add(btnLoad);
+        btnPanel.add(btnAdd);
+        btnPanel.add(btnUpdate);
+        btnPanel.add(btnDelete);
+
+        userPanel.add(btnPanel, BorderLayout.SOUTH);
+
+        tabs.add("Users", userPanel);
+
+        // ================= LOGIN HISTORY TAB =================
+        JPanel logPanel = new JPanel(new BorderLayout());
+
+        logTable = new JTable(new DefaultTableModel(
+                new String[]{"Login ID", "User ID", "Status", "IP", "Time"}, 0));
+        logPanel.add(new JScrollPane(logTable), BorderLayout.CENTER);
+
+        JPanel logInput = new JPanel();
+        txtUserId = new JTextField(5);
+        txtStatus = new JTextField(8);
+        txtIP = new JTextField(10);
+
+        logInput.add(new JLabel("User ID"));
+        logInput.add(txtUserId);
+        logInput.add(new JLabel("Status"));
+        logInput.add(txtStatus);
+        logInput.add(new JLabel("IP"));
+        logInput.add(txtIP);
+
+        logPanel.add(logInput, BorderLayout.NORTH);
+
+        JPanel logBtn = new JPanel();
+
+        JButton btnLoadLog = new JButton("Load");
+        JButton btnAddLog = new JButton("Add");
+        JButton btnUpdateLog = new JButton("Update");
+        JButton btnDeleteLog = new JButton("Delete");
+
+        logBtn.add(btnLoadLog);
+        logBtn.add(btnAddLog);
+        logBtn.add(btnUpdateLog);
+        logBtn.add(btnDeleteLog);
+
+        logPanel.add(logBtn, BorderLayout.SOUTH);
+
+        tabs.add("Login History", logPanel);
+
+        add(tabs);
+
+        // ================= BUTTON ACTIONS =================
+        btnLoad.addActionListener(e -> loadUsers());
+        btnAdd.addActionListener(e -> addUser());
+        btnUpdate.addActionListener(e -> updateUser());
+        btnDelete.addActionListener(e -> deleteUser());
+
+        btnLoadLog.addActionListener(e -> loadLogs());
+        btnAddLog.addActionListener(e -> addLog());
+        btnUpdateLog.addActionListener(e -> updateLog());
+        btnDeleteLog.addActionListener(e -> deleteLog());
+
+        // USER TABLE CLICK
+        userTable.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                int row = userTable.getSelectedRow();
+                txtUsername.setText(userTable.getValueAt(row, 1).toString());
+                txtEmail.setText(userTable.getValueAt(row, 2).toString());
+                txtPassword.setText(userTable.getValueAt(row, 3).toString());
+            }
+        });
+
+        // LOG TABLE CLICK
+        logTable.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                int row = logTable.getSelectedRow();
+                txtUserId.setText(logTable.getValueAt(row, 1).toString());
+                txtStatus.setText(logTable.getValueAt(row, 2).toString());
+                txtIP.setText(logTable.getValueAt(row, 3).toString());
+            }
+        });
+
+        setVisible(true);
+    }
+
+    Connection getConnection() throws Exception {
+        return DriverManager.getConnection(DB_URL, USER, PASS);
+    }
+
+    // ================= USERS =================
+
+    void loadUsers() {
+        try (Connection conn = getConnection()) {
+            DefaultTableModel model = (DefaultTableModel) userTable.getModel();
+            model.setRowCount(0);
+
+            ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM login");
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("email"),
+                        rs.getString("password")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void addUser() {
+        try (Connection conn = getConnection()) {
+            String sql = "INSERT INTO login(username,email,password) VALUES(?,?,?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setString(1, txtUsername.getText());
+            ps.setString(2, txtEmail.getText());
+            ps.setString(3, txtPassword.getText());
+
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this, "User Added");
+            loadUsers();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void updateUser() {
+        try (Connection conn = getConnection()) {
+
+            int row = userTable.getSelectedRow();
+            int id = (int) userTable.getValueAt(row, 0);
+
+            String sql = "UPDATE login SET username=?, email=?, password=? WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setString(1, txtUsername.getText());
+            ps.setString(2, txtEmail.getText());
+            ps.setString(3, txtPassword.getText());
+            ps.setInt(4, id);
+
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Updated");
+            loadUsers();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void deleteUser() {
+        try (Connection conn = getConnection()) {
+
+            int row = userTable.getSelectedRow();
+            int id = (int) userTable.getValueAt(row, 0);
+
+            String sql = "DELETE FROM login WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setInt(1, id);
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Deleted");
+            loadUsers();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ================= LOGIN HISTORY =================
+
+    void loadLogs() {
+        try (Connection conn = getConnection()) {
+
+            DefaultTableModel model = (DefaultTableModel) logTable.getModel();
+            model.setRowCount(0);
+
+            ResultSet rs = conn.createStatement().executeQuery("SELECT * FROM login_log");
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                        rs.getInt("login_id"),
+                        rs.getInt("user_id"),
+                        rs.getString("status"),
+                        rs.getString("ip_address"),
+                        rs.getTimestamp("login_time")
+                });
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void addLog() {
+        try (Connection conn = getConnection()) {
+
+            String sql = "INSERT INTO login_log(user_id,status,ip_address) VALUES(?,?,?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setInt(1, Integer.parseInt(txtUserId.getText()));
+            ps.setString(2, txtStatus.getText());
+            ps.setString(3, txtIP.getText());
+
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Login Added");
+            loadLogs();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void updateLog() {
+        try (Connection conn = getConnection()) {
+
+            int row = logTable.getSelectedRow();
+            int id = (int) logTable.getValueAt(row, 0);
+
+            String sql = "UPDATE login_log SET user_id=?, status=?, ip_address=? WHERE login_id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setInt(1, Integer.parseInt(txtUserId.getText()));
+            ps.setString(2, txtStatus.getText());
+            ps.setString(3, txtIP.getText());
+            ps.setInt(4, id);
+
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Updated");
+            loadLogs();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void deleteLog() {
+        try (Connection conn = getConnection()) {
+
+            int row = logTable.getSelectedRow();
+            int id = (int) logTable.getValueAt(row, 0);
+
+            String sql = "DELETE FROM login_log WHERE login_id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setInt(1, id);
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Deleted");
+            loadLogs();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        new LoginRegistrationGUI();
+    }
+}
